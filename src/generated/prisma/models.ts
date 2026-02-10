@@ -8,8 +8,21 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/Admin.js'
+export type * from './models/Appointment.js'
 export type * from './models/User.js'
 export type * from './models/Session.js'
 export type * from './models/Account.js'
 export type * from './models/Verification.js'
+export type * from './models/Doctor.js'
+export type * from './models/MedicalReport.js'
+export type * from './models/Patient.js'
+export type * from './models/PatientHealthData.js'
+export type * from './models/Payment.js'
+export type * from './models/Prescription.js'
+export type * from './models/Review.js'
+export type * from './models/Schedule.js'
+export type * from './models/DoctorSchedules.js'
+export type * from './models/Specialty.js'
+export type * from './models/DoctorSpecialty.js'
 export type * from './commonInputTypes.js'

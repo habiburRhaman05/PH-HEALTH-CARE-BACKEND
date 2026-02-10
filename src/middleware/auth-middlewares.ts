@@ -25,11 +25,13 @@ export async function authMiddleware(
 
     // SAVED USER INFO IN REQUEST
     res.locals.user = session.user;
-    res.locals.session = session.session;
+    res.locals.session = session.session
 
     res.locals.auth = {
       userId: session.user.id,
       role: session.user.role as "DOCTOR" || "PATIENT" || "ADMIN",
+      patientEmail:session.user.role === "PATIENT" ? session.user.email : null,
+      doctorEmail:session.user.role === "DOCTOR" ? session.user.email : null
     };
 
     return next();

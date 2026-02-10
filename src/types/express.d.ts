@@ -11,6 +11,8 @@ declare global {
       auth: {
         userId: string;
         role: UserRole
+        doctorEmail:string | null
+        patientEmail:string | null
       }
     }
   }

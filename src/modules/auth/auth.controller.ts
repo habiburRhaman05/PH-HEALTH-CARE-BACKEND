@@ -1,52 +1,61 @@
 import type { Request, Response } from "express";
+import { sendSuccess } from "../../utils/apiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { authServices } from "./auth.service";
-import { sendSuccess } from "../../utils/apiResponse";
-import { auth } from "../../lib/auth";
+import { CookieUtils } from "../../utils/cookie";
+import { tokenUtils } from "../../utils/token";
 
 // -------------------- REGISTER --------------------
 const registerController = asyncHandler(async (req: Request, res: Response) => {
-      const {name,email,password} = req.body;
+  const { name, email, password } = req.body;
 
-      const {user} = await authServices.registerUser({
-        name,email,password
-      })
-
-      return sendSuccess(res,{
-        statusCode:201,
-        data:user,
-        message:"Account Created Successfully"
-      })
+  const result = await authServices.registerPatient({
+    name, email, password
+  })
+  return sendSuccess(res, {
+    statusCode: 201,
+    data: result,
+    message: " Patient Account Created Successfully"
+  })
 });
 
 // -------------------- LOGIN --------------------
 const loginController = asyncHandler(async (req: Request, res: Response) => {
-      const {email,password} = req.body;
-;
+  const { email, password } = req.body;
+  ;
 
-  const response = await authServices.loginUser({email,password})
-  const setCookie = response.headers.get("set-cookie");
 
-  if (setCookie) {
-    res.setHeader("set-cookie", setCookie);
-  }
+  // common approse with accesstoken and refreshtoken
 
-  // 4. Return the user/data as JSON
-  const data = await response.json();
- return sendSuccess(res,{
-  statusCode:200,
+  const data = await authServices.loginUser({ email, password })
+
+  tokenUtils.setAccessTokenCookie(res, data.accessToken)
+  tokenUtils.setRefreshTokenCookie(res, data.refreshToken)
+  tokenUtils.setBetterAuthSessionCookie(res, data.token)
+  // handle cookie with better-auth custom route 
+  // const response = await authServices.loginUser({email,password})
+  // const setCookie = response.headers.get("set-cookie");
+
+  // if (setCookie) {
+  //   res.setHeader("set-cookie", setCookie);
+  // }
+
+  // // 4. Return the user/data as JSON
+  // const data = await response.json();
+  return sendSuccess(res, {
+    statusCode: 200,
     data,
-    message:"your are LoggedIn Sucessfully"
- })
+    message: "your are LoggedIn Sucessfully"
+  })
 });
 // -------------------- LOGIN --------------------
 const getUserProfileController = asyncHandler(async (req: Request, res: Response) => {
 
-    const user = await authServices.getUserProfile(res)
-      return sendSuccess(res,{
-        data:user,
-        message:"Profile Data fetch Successfully"
-      })
+  const user = await authServices.getUserProfile(res)
+  return sendSuccess(res, {
+    data: user,
+    message: "Profile Data fetch Successfully"
+  })
 });
 
-export const authControllers = { registerController, loginController,getUserProfileController };
+export const authControllers = { registerController, loginController, getUserProfileController };

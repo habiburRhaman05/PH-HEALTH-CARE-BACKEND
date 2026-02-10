@@ -1,0 +1,36 @@
+enum Gender {
+    MALE
+    FEMALE
+}
+
+model Doctor {
+    id                  String            @id @default(uuid())
+    userId              String            @unique
+    name                String
+    email               String            @unique
+    profilePhoto        String?
+    address             String?
+    registrationNumber  String @unique
+    contactNumber       String?
+    experience          Int @default(0)
+    averageRating       Float  @default(0.0)
+    gender              Gender
+    appointmentFee      Float
+    qualification       String
+    currentWorkingPlace String
+    designation         String
+    specialty           DoctorSpecialty[]
+    prescriptions   Prescription[]
+    isDeleted           Boolean
+    schedule            DoctorSchedules[]
+    deletedAt           DateTime          @updatedAt
+    createdAt           DateTime          @default(now())
+    updatedAt           DateTime          @updatedAt
+    // relection
+    user                User              @relation(fields: [userId], references: [id],onDelete: Cascade)
+    reviews             Review[]
+    appoinments         Appointment[]
+     @@index([email], name: "idx_doctor_email")
+  @@index([isDeleted], name: "idx_doctor_isDeleted")
+  @@map("doctor")
+}

@@ -5,32 +5,37 @@ dotenv.config();
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(8000),
-  DATABASE_URL: z.string().url().or(z.string().startsWith('postgresql://')),
-  JWT_SECRET: z.string(),
-  JWT_EXPIRES_IN: z.preprocess(
-    (value) => (value === '' ? undefined : value),
-    z.string().optional()
-  ),
-  BCRYPT_SALT_ROUNDS: z.preprocess(
-    (value) => (value === '' || value === undefined ? undefined : value),
-    z.coerce.number().int().min(4).max(31).optional()
-  ),
-  CLOUDINARY_SECRET: z.string(),
-  CLOUDINARY_KEY: z.string(),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  DATABASE_URL: z.string().url(),
+
+  JWT_SECRET: z.string().min(32),
+  JWT_EXPIRES_IN: z.string().default('1d'),
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(31).default(12),
+  
+  BETTER_AUTH_SECRET: z.string().min(32),
+  ACCESS_TOKEN_SECRET: z.string().min(32),
+  ACCESS_TOKEN_EXPIRES_IN: z.string().default('15m'),
+  REFRESH_TOKEN_SECRET: z.string().min(32),
+  REFRESH_TOKEN_EXPIRES_IN: z.string().default('7d'),
+
   CLOUDINARY_NAME: z.string(),
+  CLOUDINARY_KEY: z.string(),
+  CLOUDINARY_SECRET: z.string(),
+
   REDIS_HOST: z.string(),
+  REDIS_PORT: z.coerce.number().default(6379),
+  REDIS_USERNAME: z.string().default('default'),
   REDIS_PASSWORD: z.string(),
-  REDIS_USERNAME: z.string(),
+
   GMAIL_APP_PASSWORD: z.string(),
-  FORM_EMAIL: z.string(),
-  REDIS_PORT: z.string(),
+  FORM_EMAIL: z.string().email(),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('❌ Invalid or missing environment variables:\n', parsed.error.issues);
-  console.error(parsed.error.format());
+  console.error('❌ Invalid or missing environment variables:');
+  console.error(JSON.stringify(parsed.error.flatten().fieldErrors, null, 2));
   process.exit(1);
 }
 
