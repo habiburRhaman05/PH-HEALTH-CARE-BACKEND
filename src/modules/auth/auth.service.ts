@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { auth } from "../../lib/auth";
 import { AppError } from "../../utils/AppError";
-import type { ILoginUserPayload, ILogoutUser, IRegisterPayload, IRequestUser, } from "./user.interface";
+import type { IChangePassword, ILoginUserPayload, IRegisterPayload, IRequestUser, } from "./auth.interface";
 import { prisma } from "../../lib/prisma";
 import { tokenUtils } from "../../utils/token";
 import { UserStatus } from "../../generated/prisma/enums";
@@ -166,19 +166,37 @@ const getUserProfile = async (user: IRequestUser) => {
 // -------------------- LOGOUT USER --------------------
 
 const logoutUser = async (sessionToken: string) => {
-
-        const result = await auth.api.signOut({
-        headers : new Headers({
-            Authorization : `Bearer ${sessionToken}`
+    const result = await auth.api.signOut({
+        headers: new Headers({
+            Authorization: `Bearer ${sessionToken}`
         })
     })
-
     return result;
-
-
-
-   
 }
 
 
-export const authServices = { registerPatient, loginUser, getUserProfile, logoutUser };
+// -------------------- CHANGE PASSWORD --------------------
+
+const changePassword = async (payload: IChangePassword) => {
+    try {
+        const updatedUser = await auth.api.changePassword({
+            headers: new Headers({
+                Authorization: `Bearer ${payload.sessionToken}`
+            }),
+            body: {
+                currentPassword: payload.currentPassword,
+                newPassword: payload.newPassword
+            }
+        });
+
+        return updatedUser;
+    } catch (error: any) {
+       console.log(error);
+       
+        const message = error?.response?.data?.message || "Failed to update password. Please try again.";
+        throw new AppError(message,400);
+    }
+}
+
+
+export const authServices = { registerPatient, loginUser, getUserProfile, logoutUser,changePassword };

@@ -29,4 +29,10 @@ router.get(
 authMiddleware,
   authControllers.logoutUserController
 );
+router.put(
+  "/change-password",
+authMiddleware,
+validateRequest(authSchemas.changePasswordSchema),
+  authControllers.changePasswordController
+);
 export default router;

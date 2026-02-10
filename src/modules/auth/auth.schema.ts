@@ -32,8 +32,18 @@ const loginUserSchema = z.object({
       .min(6, "Password must be at least 6 characters long"),
   }),
 });
+const changePasswordSchema = z.object({
+  body: z.object({
+    currentPassword: z
+      .string()
+      .min(6,"Please enter a currentPassword"),
+    newPassword: z
+      .string()
+      .min(6, "please enter your new password"),
+  }),
+});
 
 
 
 
-export const authSchemas = { registerUserSchema, loginUserSchema };
+export const authSchemas = { registerUserSchema, loginUserSchema,changePasswordSchema };

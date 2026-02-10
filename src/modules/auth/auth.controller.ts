@@ -5,6 +5,8 @@ import { authServices } from "./auth.service";
 import { CookieUtils } from "../../utils/cookie";
 import { tokenUtils } from "../../utils/token";
 import { envConfig } from "../../config/env";
+import status from "http-status"
+import { AppError } from "../../utils/AppError";
 const isProduction = envConfig.NODE_ENV === "production";
 
 // -------------------- REGISTER --------------------
@@ -62,10 +64,10 @@ const getUserProfileController = asyncHandler(async (req: Request, res: Response
 // -------------------- LOGOUT --------------------
 const logoutUserController = asyncHandler(async (req: Request, res: Response) => {
 
-
+  const authToken = req.headers.authorization?.split(" ")[1]
   const better_auth_session_token = req.cookies["better-auth.session_token"]
-
-  const user = await authServices.logoutUser(better_auth_session_token)
+ 
+  const user = await authServices.logoutUser(better_auth_session_token||authToken!)
      CookieUtils.clearCookie(res, "accessToken", {
         httpOnly: true,
         secure: isProduction,
@@ -93,5 +95,28 @@ const logoutUserController = asyncHandler(async (req: Request, res: Response) =>
     message: "User Logout Successfully"
   })
 });
+// -------------------- CHANGE PASSWORD --------------------
+const changePasswordController = asyncHandler(async (req: Request, res: Response) => {
 
-export const authControllers = { registerController, loginController, getUserProfileController,logoutUserController };
+  const authToken = req.headers.authorization?.split(" ")[1]
+ 
+  const better_auth_session_token = req.cookies["better-auth.session_token"];
+
+  const {currentPassword,newPassword} = req.body
+
+  const user = await authServices.changePassword({
+    sessionToken:better_auth_session_token || authToken!,
+    currentPassword,
+    newPassword
+  })
+ 
+  return sendSuccess(res, {
+    statusCode:200,
+    data: user,
+    message: "Password change Successfully"
+  })
+});
+
+export const authControllers = { registerController, loginController, getUserProfileController,logoutUserController,
+  changePasswordController
+ };
