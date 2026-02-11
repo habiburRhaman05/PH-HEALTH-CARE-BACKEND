@@ -47,30 +47,30 @@ app.get("/", (req, res) => {
   res.render("home");
 });
 
-app.get("/verify-email", async (req, res) => {
- const { token, callbackURL } = req.query;
+// app.get("/verify-email", async (req, res) => {
+//  const { token, callbackURL } = req.query;
 
-  if (!token || typeof token !== "string") {
-    return res.status(400).send("Token missing");
-  }
+//   if (!token || typeof token !== "string") {
+//     return res.status(400).send("Token missing");
+//   }
 
 
-  try {
-    // ✅ Use Better Auth's verification helper
-    await auth.api.verifyEmail({
-      query:{
-        token:token
-      }
-    });
+//   try {
+//     // ✅ Use Better Auth's verification helper
+//     await auth.api.verifyEmail({
+//       query:{
+//         token:token
+//       }
+//     });
 
-    // Redirect user to frontend success page
-    const redirectTo = callbackURL ? String(callbackURL) : "/email-verified-success";
-    return res.redirect(`http://localhost:3000${redirectTo}`);
-  } catch (error: any) {
-    console.error("Email verification failed:", error.message);
-    return res.status(400).send("Invalid or expired token");
-  }
-});
+//     // Redirect user to frontend success page
+//     const redirectTo = callbackURL ? String(callbackURL) : "/email-verified-success";
+//     return res.redirect(`http://localhost:3000${redirectTo}`);
+//   } catch (error: any) {
+//     console.error("Email verification failed:", error.message);
+//     return res.status(400).send("Invalid or expired token");
+//   }
+// });
 
 export const startServer = async () => {
 

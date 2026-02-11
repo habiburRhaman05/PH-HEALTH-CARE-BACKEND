@@ -12,7 +12,6 @@ export interface ILoginUserPayload  {
 
 
 export interface IRequestUser{
-
   role:string;
   userId:string;
 }

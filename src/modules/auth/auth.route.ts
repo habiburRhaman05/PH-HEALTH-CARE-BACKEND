@@ -49,6 +49,10 @@ router.put(
   "/reset-password",
   authControllers.resetPasswordController
 );
+router.get(
+  "/verify-email",
+  authControllers.verifyEmail
+);
 
 
 //google login

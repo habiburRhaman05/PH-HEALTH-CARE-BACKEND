@@ -47,7 +47,8 @@ import { Gender } from "../../generated/prisma/enums";
 });
 
  const createAdminZodSchema = z.object({
-    password: z.string().min(6).max(20),
+  body:z.object({
+      password: z.string().min(6).max(20),
     admin: z.object({
         name: z.string().min(5).max(30),
         email: z.string().email("Invalid email address"),
@@ -57,6 +58,7 @@ import { Gender } from "../../generated/prisma/enums";
     role: z.enum(["ADMIN", "SUPER_ADMIN"], {
         errorMap: () => ({ message: "Role must be either ADMIN or SUPER_ADMIN" })
     })
+  })
 });
 
 export const userZodSchemas = {createAdminZodSchema,createDoctorZodSchema} 

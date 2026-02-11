@@ -130,39 +130,134 @@ const loginUser = async (payload: ILoginUserPayload) => {
 // -------------------- USER PROFILE --------------------
 
 
-const getUserProfile = async (user: IRequestUser) => {
-    const isUserExists = await prisma.user.findUnique({
-        where: {
-            id: user.userId,
-        },
-        include: {
-            patient: {
-                include: {
-                    appointment: true,
-                    reviews: true,
-                    prescription: true,
-                    medicalReports: true,
-                    patientHealthData: true,
-                }
-            },
-            doctor: {
-                include: {
-                    specialty: true,
-                    appoinments: true,
-                    reviews: true,
-                    prescriptions: true,
-                }
-            },
-            admin: true,
-        }
-    })
 
-    if (!isUserExists) {
-        throw new AppError("User not found", status.NOT_FOUND);
+const getUserProfile = async (user: IRequestUser) => {
+  // ===============================
+  // 1️⃣ Get Base User
+  // ===============================
+  const baseUser = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  if (!baseUser) {
+    throw new AppError("User not found", status.NOT_FOUND);
+  }
+
+  let profile: any = null;
+
+  // ===============================
+  // 2️⃣ PATIENT
+  // ===============================
+  if (baseUser.role === "PATIENT") {
+    const patient = await prisma.patient.findUnique({
+      where: { userId: baseUser.id },
+      include: {
+        patientHealthData: true,
+        medicalReports: true,
+        appointment: {
+          include: {
+            doctor: {
+              select: {
+                id: true,
+                name: true,
+                designation: true,
+              },
+            },
+            schedule: true,
+          },
+        },
+        reviews: true,
+        prescription: true,
+      },
+    });
+
+    if (!patient) {
+      throw new AppError("Patient profile not found", status.NOT_FOUND);
     }
 
-    return isUserExists;
-}
+    profile = patient;
+  }
+
+  // ===============================
+  // 3️⃣ DOCTOR
+  // ===============================
+  if (baseUser.role === "DOCTOR") {
+    const doctor = await prisma.doctor.findUnique({
+      where: { userId: baseUser.id },
+      include: {
+        specialty: {
+          include: {
+            specialty: {
+              select: {
+                id: true,
+                title: true,
+                icon: true,
+              },
+            },
+          },
+        },
+        schedule: true,
+        reviews: true,
+        appoinments: true,
+        prescriptions: true,
+      },
+    });
+
+    if (!doctor) {
+      throw new AppError("Doctor profile not found", status.NOT_FOUND);
+    }
+
+    // 🔥 Flatten specialty structure
+    const formattedSpecialties = doctor.specialty.map((item) => ({
+      id: item.specialty.id,
+      title: item.specialty.title,
+      icon: item.specialty.icon,
+    }));
+
+    // Remove raw relation array and replace with clean structure
+    const { specialty, ...doctorRest } = doctor;
+
+    profile = {
+      ...doctorRest,
+      specialty: formattedSpecialties,
+    };
+  }
+
+  // ===============================
+  // 4️⃣ ADMIN / SUPER_ADMIN
+  // ===============================
+  if (
+    baseUser.role === "ADMIN" ||
+    baseUser.role === "SUPER_ADMIN"
+  ) {
+    const admin = await prisma.admin.findUnique({
+      where: { userId: baseUser.id },
+    });
+
+    if (!admin) {
+      throw new AppError("Admin profile not found", status.NOT_FOUND);
+    }
+
+    profile = admin;
+  }
+
+  // ===============================
+  // 5️⃣ Final Response
+  // ===============================
+  return {
+    user: baseUser,
+    profile,
+  };
+};
+
 
 
 // -------------------- LOGOUT USER --------------------
@@ -181,6 +276,20 @@ const logoutUser = async (sessionToken: string) => {
 
 const changePassword = async (payload: IChangePassword) => {
     try {
+
+        const isSessionExist = await prisma.session.findUnique({
+            where:{
+                token:payload.sessionToken
+            }
+        });
+
+
+        if(!isSessionExist){
+            throw new AppError("Session not fould",status.NOT_FOUND)
+        }
+
+        
+
         const updatedUser = await auth.api.changePassword({
             headers: new Headers({
                 Authorization: `Bearer ${payload.sessionToken}`

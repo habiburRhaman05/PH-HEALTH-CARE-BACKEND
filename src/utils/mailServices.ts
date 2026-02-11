@@ -6,20 +6,22 @@ type MailType = 'verify' | 'reset';
 interface MailData {
     email: string;
     name: string;
-    token: string;
+    link: string;
     type: MailType;
 }
 
 async function sendMail(data: MailData) {
+    console.log(data);
+    
     try {
         const isVerify = data.type === 'verify';
         
         const subject = isVerify 
-            ? 'Verify your Skill-Bridge Account' 
-            : 'Reset your Skill-Bridge Password';
+            ? 'Verify your PH-Health Care Account' 
+            : 'Reset your PH-Health Care Password';
 
         const title = isVerify 
-            ? `Welcome to Skill-Bridge, ${data.name}!` 
+            ? `Welcome to PH-Health Care, ${data.name}!` 
             : `Password Reset Request`;
 
         const bodyText = isVerify
@@ -30,11 +32,11 @@ async function sendMail(data: MailData) {
         
         // Adjust these routes based on your frontend setup
         const link = isVerify 
-            ? `http://localhost:3000/verify-email?token=${data.token}`
-            : `http://localhost:3000/reset-password?token=${data.token}`;
+            ? `${data.link}`
+            : `${data.link}`;
 
         const mailOptions = {
-            from: '"Skill-Bridge Team" <noreply@skill-bridge.com>',
+            from: '"PH-Health Care" <noreply@phhealth.com>',
             to: data.email,
             subject: subject,
             html: `

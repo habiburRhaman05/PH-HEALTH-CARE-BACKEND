@@ -10,7 +10,6 @@ import { emailQueue } from "../queue/emailQueue";
 const isProduction = process.env.NODE_ENV === "production";
 export const auth = betterAuth({
      baseURL: envConfig.BETTER_AUTH_URL,
-    secret: envConfig.BETTER_AUTH_SECRET,
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
@@ -18,6 +17,7 @@ export const auth = betterAuth({
     trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000", envConfig.CLIENT_URL],
         redirectURLs:{
         signIn : `${envConfig.BETTER_AUTH_URL}/api/v1/auth/google/success`,
+        
     },
 
 
@@ -55,7 +55,6 @@ export const auth = betterAuth({
         requireEmailVerification: true,
           sendResetPassword: async ({user, url, token}, request) => {
   try {
-    console.log("sedning reset mail");
     
                 await emailQueue.add("reset-password-mail", { user, url }, {
                     priority: 1,
@@ -113,8 +112,9 @@ export const auth = betterAuth({
     emailVerification: {
         sendOnSignUp:true,
         sendVerificationEmail: async ({ user, url, token }, request) => {
+            const verifyLink = `${envConfig.BETTER_AUTH_URL}/api/v1/auth/verify-email?token=${token}&callbackURL=${envConfig.CLIENT_URL}/email-verified-success`
             try {
-                await emailQueue.add("verification-mail", { user, url }, {
+                await emailQueue.add("verification-mail", { user, verifyLink }, {
                     priority: 1,
                     attempts: 3, // retry 3 times if fails
                     backoff: { type: "exponential", delay: 1000 },
@@ -127,6 +127,7 @@ export const auth = betterAuth({
         
 
         }
+        
 
     },
 socialProviders:{

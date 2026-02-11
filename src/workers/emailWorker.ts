@@ -5,22 +5,20 @@ import { mailServices } from "../utils/mailServices";
  const emailWorker = new Worker(
   "emailQueue",
   async (job) => {
-   const {user,url} = job.data;
-   console.log(job);
-   
+   const {user,verifyLink} = job.data;
     switch (job.name) {
       case "verification-mail":
         await mailServices.sendMail({
            email:user.email,
            name:user.name,
-         token:url,type:"verify"
+         link:verifyLink,type:"verify"
         })
         break;
       case "reset-password-mail":
         await mailServices.sendMail({
            email:user.email,
            name:user.name,
-         token:url,
+         link:verifyLink,
          type:"reset"
         })
         break;
