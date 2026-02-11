@@ -6,6 +6,8 @@ import { mailServices } from "../utils/mailServices";
   "emailQueue",
   async (job) => {
    const {user,url} = job.data;
+   console.log(job);
+   
     switch (job.name) {
       case "verification-mail":
         await mailServices.sendMail({

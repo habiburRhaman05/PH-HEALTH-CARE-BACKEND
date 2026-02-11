@@ -49,4 +49,11 @@ router.put(
   "/reset-password",
   authControllers.resetPasswordController
 );
+
+
+//google login
+
+router.get("/login/google", authControllers.googleLogin); // when git request when a google account selct page
+router.get("/google/success", authControllers.googleLoginSuccess);
+router.get("/oauth/error", authControllers.handleOAuthError);
 export default router;

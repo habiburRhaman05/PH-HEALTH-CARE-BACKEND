@@ -18,7 +18,16 @@ const apiLimiter = rateLimit({
 
 export const applyMiddleware = (app: Express): void => {
   // app.use(httpLogger);
-  app.use(helmet());
+  app.use(
+    helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": ["'self'", "'unsafe-inline'"], // This allows your inline script to run
+      },
+    },
+  })
+  );
   app.use(hpp());
   app.use(apiLimiter);
   app.use(cors(corsConfig));
