@@ -2,8 +2,8 @@ import { prisma } from "../../lib/prisma";
 import { redis } from "../../config/redis";
 import status from "http-status";
 import { AppError } from "../../utils/AppError";
-import { DoctorQueryParams } from "./doctor.interface";
-import { doctorCacheById } from "../../config/cacheKeys";
+import { DoctorQueryParams, IUpdateDoctorPayload } from "./doctor.interface";
+import { DOCTOR_LIST_CACHE, doctorCacheById } from "../../config/cacheKeys";
 
 
 const getDoctorById = async (id: string) => {
@@ -155,24 +155,49 @@ const getAllDoctors = async (query: DoctorQueryParams) => {
   return result;
 };
 
-const updateDoctor = async (id: string, payload: any) => {
+
+const updateDoctor = async (payload: IUpdateDoctorPayload) => {
+  const { doctorId, data, userData } = payload;
+
+  // 1️⃣ Check if doctor exists
   const doctorExists = await prisma.doctor.findUnique({
-    where: { id },
+    where: { id: doctorId },
+    include: { user: true }, // Include user to update it if needed
   });
 
   if (!doctorExists) {
     throw new AppError("Doctor not found", status.NOT_FOUND);
   }
 
+  // 2️⃣ Update doctor table
   const updatedDoctor = await prisma.doctor.update({
-    where: { id },
-    data: payload,
+    where: { id: doctorId },
+    data: {
+      ...data,
+      // Optional: if marking deleted, also set deletedAt
+      ...(data?.isDeleted ? { deletedAt: new Date() } : {}),
+    },
+    include: { user: true },
   });
 
-  await redis.del(doctorCacheById(id));
+  // 3️⃣ Update related user table if userData provided
+  if (userData) {
+    await prisma.user.update({
+      where: { id: doctorExists.userId },
+      data: {
+        ...userData
+      },
+    });
+  }
+
+  // 4️⃣ Invalidate caches
+  await redis.del(doctorCacheById(doctorId));
+  await redis.del(DOCTOR_LIST_CACHE);
 
   return updatedDoctor;
 };
+
+
 
 const deleteDoctor = async (id: string) => {
   const doctorExists = await prisma.doctor.findUnique({

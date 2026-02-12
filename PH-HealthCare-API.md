@@ -15,7 +15,24 @@ Patients can book appointments, doctors can manage schedules and prescriptions, 
 > ⚠️ This is **NOT a demo project**.
 > This backend is designed to support **real hospital workflows**.
 
+
+| Resource / Route        | Corrected Access & Requirements                                                                                          | Status of Your Draft                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| **Patient Health Data** | Viewed by Doctor (if assigned) and Patient (own data). Created/Managed by Doctor during treatment.                       | ✅ Correct                            |
+| **Prescription**        | Created by Doctor (only for their assigned appointments in **COMPLETED** status). Viewed by both Doctor and Patient.     | ✅ Correct                            |
+| **Medical Report**      | Uploaded/Created by Patient. Admins and assigned Doctors can view them, but patients manage their own documents.         | ⚠️ Needs Correction (You said Admin) |
+| **Schedule**            | Created/Managed by Doctor (their own schedule). Admin can view all but does not typically create a doctor's daily slots. | ⚠️ Partially Correct                 |
+| **Specialty**           | Created/Managed by Admin and Super Admin.                                                                                | ✅ Correct                            |
+| **Doctor**              | Created/Managed by Admin and Super Admin.                                                                                | ✅ Correct                            |
+| **Payment**             | Initiated/Processed by Patient via Stripe integration. Admin can view/manage transactions for audits.                    | ✅ Correct                            |
+| **Review**              | Submitted by Patient (only for completed appointments with that doctor).                                                 | ✅ Correct                            |
+| **Appointment**         | Booked by Patient. Managed by both Doctor and Patient (viewing/cancelling).                                              | ✅ Correct                            |
+
+
+
 ---
+
+
 
 ## 👥 Roles & Permissions
 

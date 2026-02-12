@@ -51,22 +51,22 @@ const getAdminById = async (id: string) => {
 };
 
 const updateAdminProfile = async (payload: IUpdateAdmin) => {
-  const { admidId: id, data } = payload;
+  const { admidId: id, admin, user } = payload;
 
-  const existing = await prisma.admin.findUnique({
-    where: { id },
-  });
+  const existingAdmin = await prisma.admin.findUnique({ where: { id } });
 
-  if (!existing) {
-    throw new AppError(
-      "Admin Or Super Admin not found",
-      status.NOT_FOUND
-    );
+  if (!existingAdmin) {
+    throw new AppError("Admin Or Super Admin not found", status.NOT_FOUND);
   }
+
+  await prisma.user.update({
+    where: { id: existingAdmin.userId },
+    data: { ...user },
+  });
 
   const updatedAdmin = await prisma.admin.update({
     where: { id },
-    data: { ...data },
+    data: { ...admin },
     include: { user: true },
   });
 

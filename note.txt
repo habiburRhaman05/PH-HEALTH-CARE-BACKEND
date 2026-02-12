@@ -1,164 +1,134 @@
-PH-HealthCare/
-│
-├── src/
-│   │
-│   ├── app/                                 # App Router (UI + Routes)
-│   │   │
-│   │   ├── (public)/                        # Public routes group
-│   │   │   ├── page.tsx
-│   │   │   └── layout.tsx
-│   │   │
-│   │   ├── (auth)/                          # Auth routes group
-│   │   │   ├── login/
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── _components/
-│   │   │   │       └── login-form.tsx
-│   │   │   │
-│   │   │   ├── register/
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── _components/
-│   │   │   │       └── register-form.tsx
-│   │   │   │
-│   │   │   └── layout.tsx
-│   │   │
-│   │   ├── dashboard/                       # Protected routes
-│   │   │   ├── page.tsx
-│   │   │   ├── layout.tsx
-│   │   │   │
-│   │   │   ├── users/
-│   │   │   │   ├── page.tsx
-│   │   │   │   ├── [id]/
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── _components/
-│   │   │   │       └── users-table.tsx
-│   │   │   │
-│   │   │   └── jobs/
-│   │   │       ├── page.tsx
-│   │   │       └── _components/
-│   │   │           └── job-form.tsx
-│   │   │
-│   │   ├── api/                             # Route Handlers (Backend API)
-│   │   │   ├── auth/
-│   │   │   │   ├── login/route.ts
-│   │   │   │   ├── register/route.ts
-│   │   │   │   └── refresh/route.ts
-│   │   │   │
-│   │   │   ├── users/
-│   │   │   │   ├── route.ts
-│   │   │   │   └── [id]/route.ts
-│   │   │   │
-│   │   │   └── jobs/
-│   │   │       ├── route.ts
-│   │   │       └── [id]/route.ts
-│   │   │
-│   │   ├── actions/                         # Global Server Actions
-│   │   │   ├── auth.actions.ts
-│   │   │   ├── user.actions.ts
-│   │   │   └── job.actions.ts
-│   │   │
-│   │   ├── providers.tsx                    # React Query / Theme / Global Providers
-│   │   ├── layout.tsx
-│   │   ├── globals.css
-│   │   └── loading.tsx
-│   │
-│   │
-│   ├── features/                            # Feature-Based Modules (Core Architecture)
-│   │
-│   │   ├── auth/
-│   │   │   ├── components/
-│   │   │   ├── hooks/
-│   │   │   │   ├── useLogin.ts
-│   │   │   │   ├── useRegister.ts
-│   │   │   │   └── useMe.ts
-│   │   │   │
-│   │   │   ├── services/
-│   │   │   │   └── auth.api.ts              # Axios calls
-│   │   │   │
-│   │   │   ├── server/
-│   │   │   │   └── auth.service.ts          # DB logic (Prisma)
-│   │   │   │
-│   │   │   ├── schemas/
-│   │   │   │   └── auth.schema.ts
-│   │   │   │
-│   │   │   └── types.ts
-│   │   │
-│   │   │
-│   │   ├── users/
-│   │   │   ├── components/
-│   │   │   ├── hooks/
-│   │   │   │   ├── useUsers.ts
-│   │   │   │   └── useCreateUser.ts
-│   │   │   │
-│   │   │   ├── services/
-│   │   │   │   └── users.api.ts
-│   │   │   │
-│   │   │   ├── server/
-│   │   │   │   └── user.service.ts
-│   │   │   │
-│   │   │   ├── schemas/
-│   │   │   │   └── user.schema.ts
-│   │   │   │
-│   │   │   └── types.ts
-│   │   │
-│   │   │
-│   │   └── jobs/
-│   │       ├── components/
-│   │       ├── hooks/
-│   │       ├── services/
-│   │       ├── server/
-│   │       ├── schemas/
-│   │       └── types.ts
-│   │
-│   │
-│   ├── lib/                                  # Shared Utilities & Config
-│   │   │
-│   │   ├── api/
-│   │   │   ├── axios.ts                      # Axios instance
-│   │   │   ├── api-client.ts                 # Generic wrapper
-│   │   │   └── types.ts
-│   │   │
-│   │   ├── react-query/
-│   │   │   ├── query-client.ts
-│   │   │   └── provider.tsx
-│   │   │
-│   │   ├── db/
-│   │   │   └── prisma.ts
-│   │   │
-│   │   ├── auth/
-│   │   │   └── session.ts
-│   │   │
-│   │   ├── cors/
-│   │   │   └── cors.ts
-│   │   │
-│   │   ├── utils.ts
-│   │   └── constants.ts
-│   │
-│   │
-│   ├── hooks/                                # Global reusable hooks
-│   │   ├── useDebounce.ts
-│   │   └── useDisclosure.ts , useQUERY.ts,useMutation.ts 
-│   │
-│   │
-│   ├── store/                                # Zustand / Redux
-│   │   └── auth.store.ts
-│   │
-│   │
-│   ├── types/                                # Global types
-│   │   └── index.ts
-│   │
-│   │
-│   └── middleware.ts                         # Route protection
-│
-│
-├── public/
-│  SETUP TESTING UNIT AND integration
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│  
-│
-├── .env
-├── next.config.ts
-├── tsconfig.json
-├── package.json
-└── README.md
+role based routes access
+
+. patientHealthData - created by doctor
+. prescription - created by doctor
+. medicalReport - created by admin
+. schedule - created by admin and doctor
+. speciality - created by admin 
+. doctor - created by admin 
+. payment - created by patient
+. review - created by patient
+. appointment - created by patient
+
+
+prompts : 
+
+
+আপনার পোর্টফোলিও প্রজেক্টকে ইন্ডাস্ট্রি লেভেলে নিয়ে যাওয়ার জন্য আমি এখানে **Re-usable Component Architecture** এবং **Color Strategy** সহ প্রতিটি সেকশনের জন্য আলাদা আলাদা ডিটেইলড প্রম্পট তৈরি করে দিচ্ছি।
+
+আপনি এই প্রম্পটগুলো **v0.dev**, **Bolt.new**, অথবা **Cursor AI**-তে ব্যবহার করতে পারবেন।
+
+---
+
+### 🎨 Theme Setup (UX Best Practices)
+
+AI-কে কোড জেনারেট করতে বলার আগে এই কালার প্যালেটটি সেটআপ করতে বলুন:
+
+* **Light Mode:** * Primary: `#10b981` (Emerald-500 - Trust & Health)
+* Secondary: `#0f172a` (Slate-900 - Professionalism)
+* Background: `#f8fafc` (Slate-50)
+
+
+* **Dark Mode:** * Primary: `#34d399` (Emerald-400)
+* Background: `#020617` (Deep Navy)
+* Surface: `#0f172a` (Slate-900)
+
+
+
+---
+
+### 🧱 1. Re-usable Component Foundation (The Core)
+
+সব ড্যাশবোর্ডের জন্য আলাদা আলাদা কম্পোনেন্ট না বানিয়ে আগে এটি সেটআপ করতে হবে।
+
+**Prompt:**
+
+> "Create a set of high-quality re-usable UI components for a Healthcare System using Shadcn/UI and Tailwind. Must include:
+> 1. **StatCard**: For displaying metrics (label, value, icon, trend).
+> 2. **DataTable**: A generic table with search, sort, and pagination.
+> 3. **AppSidebar**: A flexible sidebar that accepts navigation items as props (to be reused for Doctor, Patient, and Admin).
+> 4. **Modal/Dialog**: A reusable wrapper for forms.
+> 5. **StatusBadge**: A badge that changes color based on 'AppointmentStatus' (Pending, Completed, Cancelled).
+> Ensure all support Dark and Light mode with a professional Emerald and Slate color theme."
+> 
+> 
+
+---
+
+### 🌐 2. Public & Auth Pages
+
+**Prompt:**
+
+> "Design a modern Landing Page and Auth system for PH-HealthCare.
+> * **Landing Page**: Hero section with a search bar to find doctors by specialty, a 'How it works' section, and a Featured Doctors slider.
+> * **Auth**: Create a shared Login and Signup layout. Signup must have a toggle to choose between 'Doctor' or 'Patient' registration.
+> * **Doctor Search**: A public page listing doctors with filters (Specialty, Availability, Rating). Use the StatCard and Button components."
+> 
+> 
+
+---
+
+### 🏥 3. Patient Dashboard
+
+**Prompt:**
+
+> "Create a Patient Dashboard for PH-HealthCare.
+> * **Overview**: Use 'StatCards' to show 'Next Appointment', 'Total Prescriptions', and 'Health Data Count'.
+> * **Appointment Booking**: A multi-step form to select a specialty, then a doctor, then a time slot from the doctor's schedule.
+> * **My Reports**: A list view using the 'DataTable' component to view/upload medical reports.
+> * **Prescriptions**: A clean list where patients can view and download PDFs of prescriptions issued by doctors."
+> 
+> 
+
+---
+
+### 👨‍⚕️ 4. Doctor Dashboard
+
+**Prompt:**
+
+> "Create a Doctor Dashboard interface.
+> * **Daily Schedule**: A 'DataTable' showing today's appointments with 'Start Consultation' button.
+> * **Schedule Management**: A calendar-like UI where doctors can toggle their availability and create time slots.
+> * **Consultation Flow**: A page where the doctor can view patient history and fill out a 'Digital Prescription' form (Diagnosis, Medicines, Instructions).
+> * **Patient Records**: Access to 'Patient Health Data' for assigned patients only. Re-use the Sidebar and StatCard components."
+> 
+> 
+
+---
+
+### ⚙️ 5. Admin Dashboard
+
+**Prompt:**
+
+> "Design a high-level Admin Dashboard for PH-HealthCare.
+> * **System Metrics**: Charts (Recharts) showing monthly appointments, total revenue, and new users.
+> * **User Management**: A 'DataTable' to manage Doctors and Patients (Approve/Block status).
+> * **Specialties Management**: A CRUD interface to add/edit medical specialties with icons.
+> * **Transaction Logs**: A detailed table showing all Stripe payment statuses. Focus on high-density data visualization."
+> 
+> 
+
+---
+
+### 👑 6. Super Admin Dashboard
+
+**Prompt:**
+
+> "Design the Super Admin interface for PH-HealthCare.
+> * Focus on **Admin Management**: List of all Admins with the ability to create new Admin accounts and assign permissions.
+> * **System Logs**: A feed showing critical system actions (who created what).
+> * **Global Settings**: UI for managing site-wide configurations (e.g., maintenance mode, global commission rates).
+> Use a slightly different accent color (e.g., Indigo) to distinguish Super Admin from regular Admin."
+> 
+> 
+
+---
+
+### 💡 AI-কে দেওয়ার জন্য গুরুত্বপূর্ণ ইনস্ট্রাকশন:
+
+প্রতিটি প্রম্পটের শেষে এটি যোগ করবেন:
+
+* *"Do not create redundant components. Use the core 'DashboardLayout' for all roles. Only change the Sidebar Menu Items and the Main Content Area based on the user's role. Use TypeScript and ensure 100% responsiveness."*
+
+**কেন এটি সেরা হবে?**
+এইভাবে কাজ করলে আপনার কোড হবে অনেক ক্লিন (DRY - Don't Repeat Yourself), যা বড় বড় কোম্পানিগুলোতে ডেভেলপারদের কাছ থেকে আশা করা হয়। এটি জবে ইন্টারভিউতে আপনার **System Design** নলেজ প্রমাণ করবে।
