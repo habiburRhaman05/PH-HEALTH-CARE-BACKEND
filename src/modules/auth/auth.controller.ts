@@ -36,7 +36,7 @@ const loginController = asyncHandler(async (req: Request, res: Response) => {
 
   tokenUtils.setAccessTokenCookie(res, data.accessToken)
   tokenUtils.setRefreshTokenCookie(res, data.refreshToken)
-  tokenUtils.setBetterAuthSessionCookie(res, data.token)
+  tokenUtils.setBetterAuthSessionCookie(res, data.sessionToken)
   // handle cookie with better-auth custom route 
   // const response = await authServices.loginUser({email,password})
   // const setCookie = response.headers.get("set-cookie");
@@ -67,8 +67,9 @@ const logoutUserController = asyncHandler(async (req: Request, res: Response) =>
 
 
   const better_auth_session_token = req.cookies["better-auth.session_token"]
+  const refreshToken = req.cookies["refreshToken"]
 
-  const user = await authServices.logoutUser(better_auth_session_token)
+  const user = await authServices.logoutUser(better_auth_session_token,refreshToken)
   CookieUtils.clearCookie(res, "accessToken", {
     httpOnly: true,
     secure: isProduction,
@@ -169,22 +170,14 @@ const resetPasswordController = asyncHandler(async (req: Request, res: Response)
 // --------------------  VERIFY EMAIL --------------------
 const verifyEmail = asyncHandler(async (req, res) => {
   const { token, callbackURL } = req.query;
-console.log(callbackURL);
-
   if (!token || typeof token !== "string") {
     return res.status(400).send("Token missing");
   }
   try {
-    await auth.api.verifyEmail({
-      query: {
-        token: token
-      }
-    });
-    // const redirectTo = callbackURL ? String(callbackURL) : "/email-verified-success";
+   await authServices.verifyEmail(token)
     return res.redirect(callbackURL as string);
   } catch (error: any) {
-    console.error("Email verification failed:", error.message);
-    return res.status(400).send("Invalid or expired token");
+    return res.redirect(`${envConfig.CLIENT_URL}/verify-email-error`);
   }
 })
 

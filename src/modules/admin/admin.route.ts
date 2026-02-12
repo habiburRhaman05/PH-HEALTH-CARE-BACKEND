@@ -28,4 +28,4 @@ router.delete("/:id",
     adminControllers.deleteAdminController
 );
 
-export const AdminRoutes = router;
+export default router

@@ -1,430 +1,286 @@
-import { Request, Response } from "express";
-import { auth } from "../../lib/auth";
-import { AppError } from "../../utils/AppError";
-import type { IChangePassword, ILoginUserPayload, IRegisterPayload, IRequestUser, } from "./auth.interface";
-import { prisma } from "../../lib/prisma";
-import { tokenUtils } from "../../utils/token";
-import { UserStatus } from "../../generated/prisma/enums";
-import status from "http-status"
-import { CookieUtils } from "../../utils/cookie";
-import { envConfig } from "../../config/env";
-import { jwtUtils } from "../../utils/jwt";
+import crypto from "crypto";
+import status from "http-status";
 import { JwtPayload } from "jsonwebtoken";
-const isProduction = envConfig.NODE_ENV === "production";
 
-// -------------------- REGISTER --------------------
-const registerPatient = async (payload: IRegisterPayload): Promise<any> => {
+import { auth } from "../../lib/auth";
+import { prisma } from "../../lib/prisma";
+import { redis } from "../../config/redis";
+import { tokenUtils } from "../../utils/token";
+import { jwtUtils } from "../../utils/jwt";
+import { AppError } from "../../utils/AppError";
+import { UserStatus } from "../../generated/prisma/enums";
+import { envConfig } from "../../config/env";
 
-    const { user } = await auth.api.signUpEmail({
-        body: payload
+import type {
+  IChangePassword,
+  ILoginUserPayload,
+  IRegisterPayload,
+  IRequestUser,
+} from "./auth.interface";
+import { PROFILE_CACHE_EXPIRE, REFRESH_EXPIRE, SESSION_EXPIRE } from "../../config/cacheKeys";
+
+
+const registerPatient = async (payload: IRegisterPayload) => {
+  const { user } = await auth.api.signUpEmail({ body: payload });
+
+  try {
+    const patient = await prisma.patient.create({
+      data: {
+        name: user.name,
+        email: user.email,
+        userId: user.id,
+      },
     });
-    try {
 
-        const patient = await prisma.$transaction(async (tx) => {
-            const patientTx = await tx.patient.create({
-                data: {
-                    name: user.name,
-                    email: user.email,
-                    userId: user.id
-                }
-            });
-            return patientTx
-        })
-
-        const accessToken = tokenUtils.getAccessToken({
-            userId: user.id,
-            role: user.role,
-            name: user.name,
-            email: user.email,
-            status: user.status,
-            isDeleted: user.isDeleted,
-            emailVerified: user.emailVerified,
-        });
-
-        const refreshToken = tokenUtils.getRefreshToken({
-            userId: user.id,
-            role: user.role,
-            name: user.name,
-            email: user.email,
-            status: user.status,
-            isDeleted: user.isDeleted,
-            emailVerified: user.emailVerified,
-        });
-
-        return {
-            user,
-            patient,
-            accessToken,
-            refreshToken
-        };
-    } catch (error) {
-        console.log("failed to register patient");
-
-        await prisma.user.delete({
-            where: {
-                id: user.id
-            }
-        })
-        throw error;
-    }
+    return { user, patient };
+  } catch (error) {
+    await prisma.user.delete({ where: { id: user.id } });
+    throw error;
+  }
 };
 
-// -------------------- LOGIN --------------------
-// send cookie with better auth
-// const loginUser = async (payload: LoginPayload):Promise<any> => {
-//   const response = await auth.api.signInEmail({
-//     body: payload,
-//     asResponse: true,
-//   });
-
-// };
-
 const loginUser = async (payload: ILoginUserPayload) => {
-    const { email, password } = payload;
+  const { email, password } = payload;
 
-    const data = await auth.api.signInEmail({
-        body: {
-            email,
-            password,
-        }
-    })
+  const attemptKey = `login_attempt:${email}`;
+  const attempts = await redis.incr(attemptKey);
 
-    if (data.user.status === UserStatus.BANNED) {
-        throw new AppError("User is blocked", status.FORBIDDEN);
-    }
+  if (attempts === 1) await redis.expire(attemptKey, 60);
+  if (attempts > 5)
+    throw new AppError("Too many login attempts", 429);
 
-    if (data.user.isDeleted || data.user.status === UserStatus.DELETED) {
-        throw new AppError("User is deleted", status.NOT_FOUND);
-    }
+  const data = await auth.api.signInEmail({ body: { email, password } });
 
+  if (data.user.status === UserStatus.BANNED)
+    throw new AppError("User is blocked", status.FORBIDDEN);
 
+  if (data.user.isDeleted)
+    throw new AppError("User is deleted", status.NOT_FOUND);
 
-    const accessToken = tokenUtils.getAccessToken({
-        userId: data.user.id,
-        role: data.user.role,
-        name: data.user.name,
-        email: data.user.email,
-        status: data.user.status,
-        isDeleted: data.user.isDeleted,
-        emailVerified: data.user.emailVerified,
-    });
+  const tokenPayload = {
+    userId: data.user.id,
+    role: data.user.role,
+    name: data.user.name,
+    email: data.user.email,
+    status: data.user.status,
+  };
 
-    const refreshToken = tokenUtils.getRefreshToken({
-        userId: data.user.id,
-        role: data.user.role,
-        name: data.user.name,
-        email: data.user.email,
-        status: data.user.status,
-        isDeleted: data.user.isDeleted,
-        emailVerified: data.user.emailVerified,
-    });
+  const accessToken = tokenUtils.getAccessToken(tokenPayload);
+  const refreshToken = tokenUtils.getRefreshToken(tokenPayload);
+  const sessionToken = data.token;
 
-    return {
-        ...data,
-        accessToken,
-        refreshToken,
-    };
+  await redis.set(
+    `session:${sessionToken}`,
+    JSON.stringify(tokenPayload),
+    "EX",
+    SESSION_EXPIRE
+  );
 
-}
+  await redis.set(
+    `refresh:${refreshToken}`,
+    sessionToken,
+    "EX",
+    REFRESH_EXPIRE
+  );
 
-// -------------------- USER PROFILE --------------------
+  await redis.del(attemptKey);
 
+  return { accessToken, refreshToken, sessionToken };
+};
 
+const getAllNewTokens = async (
+  refreshToken: string,
+  sessionToken: string
+) => {
+  const storedSession = await redis.get(`refresh:${refreshToken}`);
 
-const getUserProfile = async (user: IRequestUser) => {
-  // ===============================
-  // 1️⃣ Get Base User
-  // ===============================
-  const baseUser = await prisma.user.findUnique({
-    where: { id: user.userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      status: true,
-      createdAt: true,
-    },
-  });
+  if (!storedSession || storedSession !== sessionToken)
+    throw new AppError("Invalid refresh token", status.UNAUTHORIZED);
 
-  if (!baseUser) {
-    throw new AppError("User not found", status.NOT_FOUND);
-  }
+  const verified = jwtUtils.verifyToken(
+    refreshToken,
+    envConfig.REFRESH_TOKEN_SECRET
+  );
 
-  let profile: any = null;
+  if (!verified.success || !verified.data)
+    throw new AppError("Invalid refresh token", status.UNAUTHORIZED);
 
-  // ===============================
-  // 2️⃣ PATIENT
-  // ===============================
-  if (baseUser.role === "PATIENT") {
-    const patient = await prisma.patient.findUnique({
-      where: { userId: baseUser.id },
-      include: {
-        patientHealthData: true,
-        medicalReports: true,
-        appointment: {
-          include: {
-            doctor: {
-              select: {
-                id: true,
-                name: true,
-                designation: true,
-              },
-            },
-            schedule: true,
-          },
-        },
-        reviews: true,
-        prescription: true,
-      },
-    });
+  const payload = verified.data as JwtPayload;
 
-    if (!patient) {
-      throw new AppError("Patient profile not found", status.NOT_FOUND);
-    }
+  const tokenPayload = {
+    userId: payload.userId,
+    role: payload.role,
+    name: payload.name,
+    email: payload.email,
+    status: payload.status,
+  };
 
-    profile = patient;
-  }
+  const newAccessToken = tokenUtils.getAccessToken(tokenPayload);
+  const newRefreshToken = tokenUtils.getRefreshToken(tokenPayload);
 
-  // ===============================
-  // 3️⃣ DOCTOR
-  // ===============================
-  if (baseUser.role === "DOCTOR") {
-    const doctor = await prisma.doctor.findUnique({
-      where: { userId: baseUser.id },
-      include: {
-        specialty: {
-          include: {
-            specialty: {
-              select: {
-                id: true,
-                title: true,
-                icon: true,
-              },
-            },
-          },
-        },
-        schedule: true,
-        reviews: true,
-        appoinments: true,
-        prescriptions: true,
-      },
-    });
+  await redis.del(`refresh:${refreshToken}`);
 
-    if (!doctor) {
-      throw new AppError("Doctor profile not found", status.NOT_FOUND);
-    }
+  await redis.set(
+    `refresh:${newRefreshToken}`,
+    sessionToken,
+    "EX",
+    REFRESH_EXPIRE
+  );
 
-    // 🔥 Flatten specialty structure
-    const formattedSpecialties = doctor.specialty.map((item) => ({
-      id: item.specialty.id,
-      title: item.specialty.title,
-      icon: item.specialty.icon,
-    }));
-
-    // Remove raw relation array and replace with clean structure
-    const { specialty, ...doctorRest } = doctor;
-
-    profile = {
-      ...doctorRest,
-      specialty: formattedSpecialties,
-    };
-  }
-
-  // ===============================
-  // 4️⃣ ADMIN / SUPER_ADMIN
-  // ===============================
-  if (
-    baseUser.role === "ADMIN" ||
-    baseUser.role === "SUPER_ADMIN"
-  ) {
-    const admin = await prisma.admin.findUnique({
-      where: { userId: baseUser.id },
-    });
-
-    if (!admin) {
-      throw new AppError("Admin profile not found", status.NOT_FOUND);
-    }
-
-    profile = admin;
-  }
-
-  // ===============================
-  // 5️⃣ Final Response
-  // ===============================
   return {
-    user: baseUser,
-    profile,
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+    sessionToken,
   };
 };
 
+const getUserProfile = async (user: IRequestUser) => {
+  const cacheKey = `profile:${user.userId}`;
 
+  const cached = await redis.get(cacheKey);
+  if (cached) return JSON.parse(cached);
 
-// -------------------- LOGOUT USER --------------------
+  const baseUser = await prisma.user.findUnique({
+    where: { id: user.userId },
+  });
 
-const logoutUser = async (sessionToken: string) => {
-    const result = await auth.api.signOut({
-        headers: new Headers({
-            Authorization: `Bearer ${sessionToken}`
-        })
-    })
-    return result;
-}
+  if (!baseUser)
+    throw new AppError("User not found", status.NOT_FOUND);
 
+  await redis.set(
+    cacheKey,
+    JSON.stringify(baseUser),
+    "EX",
+    PROFILE_CACHE_EXPIRE
+  );
 
-// -------------------- CHANGE PASSWORD --------------------
-
-const changePassword = async (payload: IChangePassword) => {
-    try {
-
-        const isSessionExist = await prisma.session.findUnique({
-            where:{
-                token:payload.sessionToken
-            }
-        });
-
-
-        if(!isSessionExist){
-            throw new AppError("Session not fould",status.NOT_FOUND)
-        }
-
-        
-
-        const updatedUser = await auth.api.changePassword({
-            headers: new Headers({
-                Authorization: `Bearer ${payload.sessionToken}`
-            }),
-            body: {
-                currentPassword: payload.currentPassword,
-                newPassword: payload.newPassword
-            }
-        });
-
-        return updatedUser;
-    } catch (error: any) {
-       console.log(error);
-       
-        const message = error?.response?.data?.message || "Failed to update password. Please try again.";
-        throw new AppError(message,400);
-    }
-}
-
-const getAllNewTokens = async (refreshToken: string, sessionToken: string) => {
-    // 1. Verify Session if exist or not
-    const session = await prisma.session.findUnique({
-        where: { token: sessionToken },
-    });
-
-    if (!session) {
-        throw new AppError("Invalid session token", status.UNAUTHORIZED);
-    }
-
-    // 2. Verify Refresh Token
-    const verified = jwtUtils.verifyToken(refreshToken, envConfig.REFRESH_TOKEN_SECRET);
-
-    if (!verified.success || !verified.data) {
-        throw new AppError("Invalid refresh token", status.UNAUTHORIZED);
-    }
-
-    const payload = verified.data as JwtPayload;
-
-    // 3. Generate new tokens (Cleaned up by passing the payload directly)
-    const tokenPayload = {
-        userId: payload.userId,
-        role: payload.role,
-        name: payload.name,
-        email: payload.email,
-        status: payload.status,
-        isDeleted: payload.isDeleted,
-        emailVerified: payload.emailVerified,
-    };
-// creating a new tokens
-    const accessToken = tokenUtils.getAccessToken(tokenPayload);
-    const newRefreshToken = tokenUtils.getRefreshToken(tokenPayload);
-
-    // 4. Update session expiry
-    const updatedSession = await prisma.session.update({
-        where: { token: sessionToken },
-        data: {
-            expiresAt: new Date(Date.now() + 60 * 60 * 24 * 1000), // Fixed: 24 hours
-            updatedAt: new Date(),
-        }
-    });
-
-    return {
-        accessToken,
-        refreshToken: newRefreshToken,
-        sessionToken: updatedSession.token,
-    };
+  return baseUser;
 };
 
-const requestResetPassword = async (email:string)=>{
-    const response = await auth.api.requestPasswordReset({
-    body:{
-        email
-    }
+const logoutUser = async (
+  sessionToken: string,
+  refreshToken: string
+) => {
+  await redis.del(`session:${sessionToken}`);
+  await redis.del(`refresh:${refreshToken}`);
+  return true;
+};
 
-});
+const changePassword = async (payload: IChangePassword) => {
+  const session = await redis.get(
+    `session:${payload.sessionToken}`
+  );
 
- if(response.status === true){
-    return true
+  if (!session)
+    throw new AppError("Session expired", status.UNAUTHORIZED);
+
+  const updatedUser = await auth.api.changePassword({
+    headers: new Headers({
+      Authorization: `Bearer ${payload.sessionToken}`,
+    }),
+    body: {
+      currentPassword: payload.currentPassword,
+      newPassword: payload.newPassword,
+    },
+  });
+
+  return updatedUser;
+};
+
+const requestResetPassword = async (email: string) => {
+  const response = await auth.api.requestPasswordReset({
+    body: { email },
+  });
+
+  if (!response.status)
+    throw new AppError("Failed to request reset", 400);
+
+  return true;
+};
+
+const resetPassword = async (
+  newPassword: string,
+  token: string
+) => {
+  const response = await auth.api.resetPassword({
+    body: { token, newPassword },
+  });
+
+  if (!response.status)
+    throw new AppError("Failed to reset password", 400);
+
+  return true;
+};
+
+const verifyEmail = async (token: string) => {
+ try {
+  await auth.api.verifyEmail({
+  query:{
+    token
+    
+  }
+  });
+  return true;
+
+ } catch (error) {
+   throw new AppError("Email verification failed", 400);
  }
- return false
+};
 
-}
-const resetPassword = async (newPassword:string,token:string)=>{
-    const response = await auth.api.resetPassword({
-    body:{
+const googleLoginSuccess = async (
+  session: Record<string, any>
+) => {
+  const existingPatient = await prisma.patient.findUnique({
+    where: { userId: session.user.id },
+  });
 
-        token,
-        newPassword
-    }
-
-});
-
- if(response.status === true){
-    return true
- }
- return false
-
-}
-
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const googleLoginSuccess = async (session : Record<string, any>) =>{
-    const isPatientExists = await prisma.patient.findUnique({
-        where : {
-            userId : session.user.id,
-        }
-    })
-
-    if(!isPatientExists){
-        await prisma.patient.create({
-            data : {
-                userId : session.user.id,
-                name : session.user.name,
-                email : session.user.email,
-            }
-        
-        })
-    }
-
-    const accessToken = tokenUtils.getAccessToken({
+  if (!existingPatient) {
+    await prisma.patient.create({
+      data: {
         userId: session.user.id,
-        role: session.user.role,
         name: session.user.name,
+        email: session.user.email,
+      },
     });
+  }
 
-    const refreshToken = tokenUtils.getRefreshToken({
-        userId: session.user.id,
-        role: session.user.role,
-        name: session.user.name,
-    });
+  const tokenPayload = {
+    userId: session.user.id,
+    role: session.user.role,
+    name: session.user.name,
+    email: session.user.email,
+  };
 
-    return {
-        accessToken,
-        refreshToken,
-    }
-}
+  const accessToken = tokenUtils.getAccessToken(tokenPayload);
+  const refreshToken = tokenUtils.getRefreshToken(tokenPayload);
+  const sessionToken = crypto.randomUUID();
 
-export const authServices = { registerPatient, loginUser, getUserProfile, logoutUser,changePassword,getAllNewTokens,requestResetPassword,resetPassword,googleLoginSuccess };
+  await redis.set(
+    `session:${sessionToken}`,
+    JSON.stringify(tokenPayload),
+    "EX",
+    SESSION_EXPIRE
+  );
+
+  await redis.set(
+    `refresh:${refreshToken}`,
+    sessionToken,
+    "EX",
+    REFRESH_EXPIRE
+  );
+
+  return { accessToken, refreshToken, sessionToken };
+};
+
+export const authServices = {
+  registerPatient,
+  loginUser,
+  getAllNewTokens,
+  getUserProfile,
+  logoutUser,
+  changePassword,
+  requestResetPassword,
+  resetPassword,
+  googleLoginSuccess,
+  verifyEmail
+};

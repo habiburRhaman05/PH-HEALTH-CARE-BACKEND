@@ -1,3 +1,5 @@
+import { ADMIN_LIST_CACHE } from "../../config/cacheKeys";
+import { redis } from "../../config/redis";
 import { Specialty, UserRole } from "../../generated/prisma/client";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
@@ -117,6 +119,9 @@ const createDoctor = async (payload: ICreateDoctorPayload) => {
 
         })
 
+
+
+
         return result;
     } catch (error) {
         console.log("Transaction error : ", error);
@@ -163,6 +168,10 @@ const createAdmin = async (payload: ICreateAdminPayload) => {
                 ...admin,
             }
         })
+
+
+        
+          await redis.del(ADMIN_LIST_CACHE);
 
         return adminData;
 
