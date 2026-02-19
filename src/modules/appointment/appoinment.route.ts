@@ -14,11 +14,23 @@ router.get("/:id",
     authMiddleware,
     roleMiddleware(["ADMIN", "DOCTOR", "SUPER_ADMIN", "PATIENT"]),
     AppointmentController.getAppointmentById);
+    // create 
 router.post("/",
     authMiddleware,
     roleMiddleware(["PATIENT"]),
     validateRequest(appointmentSchemas.createAppointmentZodSchema),
     AppointmentController.createAppointment);
+    //create
+router.post("/book-with-pay-later",
+    authMiddleware,
+    roleMiddleware(["PATIENT"]),
+    validateRequest(appointmentSchemas.createAppointmentZodSchema),
+    AppointmentController.createAppointmentWithPayLater);
+router.post("/pay-later/:appointmentId",
+    authMiddleware,
+    roleMiddleware(["PATIENT"]),
+    // add a schema
+    AppointmentController.handleAppointmentPayLater);
 router.get("/:patientId",
     authMiddleware,
     roleMiddleware(["PATIENT"]),

@@ -54,6 +54,32 @@ const createAppointment = asyncHandler(
     });
   }
 );
+const createAppointmentWithPayLater = asyncHandler(
+  async (req: Request, res: Response) => {
+    const payload = req.body;
+     payload.videoCallingId = String(uuidv7())
+
+    const result = await appointmentServices.createAppointmentWithPaylater(payload);
+
+    sendSuccess(res, {
+      statusCode: status.CREATED,
+      message: "Appointment created successfully with PayLater",
+      data: result,
+    });
+  }
+);
+const handleAppointmentPayLater = asyncHandler(
+  async (req: Request, res: Response) => {
+    const {appointmentId} = req.body;
+    const result = await appointmentServices.handlePayLater(appointmentId);
+
+    sendSuccess(res, {
+      statusCode: status.CREATED,
+      message: "Appointment  paid successfully",
+      data: result,
+    });
+  }
+);
 
 
 const cancelAppointment = asyncHandler(
@@ -79,4 +105,6 @@ export const AppointmentController = {
   getAppointmentById,
   createAppointment,
   cancelAppointment,
+  createAppointmentWithPayLater,
+  handleAppointmentPayLater
 };

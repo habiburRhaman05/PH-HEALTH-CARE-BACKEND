@@ -8,6 +8,8 @@ import { AppointmentStatus } from "../../generated/prisma/enums";
 import { v7 as uuidv7 } from "uuid";
 import { stripe } from "../../config/stripe";
 import { envConfig } from "../../config/env";
+import { ICreatePaymentSession } from "../stripe/stripe.interface";
+import { stripeServices } from "../stripe/stripe.service";
 /**
  * Get all appointments with filters and pagination (Admin use)
  */
@@ -72,7 +74,7 @@ const createAppointment = async (payload: ICreateAppointmentPayload) => {
                 appointmentId : appointment.id,
                 amount : doctor.appointmentFee,
                 transactionId,
-                status:"PENDING"
+                status:"PENDING",
             }
         });
         
@@ -114,6 +116,69 @@ const createAppointment = async (payload: ICreateAppointmentPayload) => {
             appointment,
             paymentData,
             paymentUrl:session.url
+        }
+    });
+};
+/**
+ * Create a new appointment with pay later
+ */
+const createAppointmentWithPaylater = async (payload: ICreateAppointmentPayload) => {
+    const { doctorId, patientId, scheduleId } = payload;
+    return await prisma.$transaction(async (tx) => {
+        // Validate doctor exists and is active
+        const doctor = await tx.doctor.findUnique({
+            where: { id: doctorId, isDeleted: false },
+        });
+        if (!doctor) throw new AppError("Doctor profile not found", status.NOT_FOUND);
+
+        // Validate patient exists
+        const patient = await tx.patient.findUnique({
+            where: { id: patientId },
+        });
+        if (!patient) throw new AppError("Patient profile not found", status.NOT_FOUND);
+
+        // Check if doctor schedule exists and is available
+        const doctorSchedule = await tx.doctorSchedules.findUnique({
+            where: {
+                doctorId_scheduleId: { doctorId, scheduleId },
+            },
+        });
+
+        if (!doctorSchedule) throw new AppError("Schedule not found", status.NOT_FOUND);
+        if (doctorSchedule.isBooked) throw new AppError("This schedule is already booked", status.BAD_REQUEST);
+
+        // Create the appointment record
+        const appointment = await tx.appointment.create({
+            data: {
+                ...payload,
+                status: AppointmentStatus.SCHEDULED,
+            },
+            include: {
+                patient: true,
+                doctor: true,
+                schedule: true,
+            },
+        });
+         const transactionId = String(uuidv7());
+
+        const paymentData = await tx.payment.create({
+            data : {
+                appointmentId : appointment.id,
+                amount : doctor.appointmentFee,
+                transactionId,
+                status:"PENDING",
+            }
+        });
+        // Mark doctor schedule as booked
+        await tx.doctorSchedules.update({
+            where: {
+                doctorId_scheduleId: { doctorId, scheduleId },
+            },
+            data: { isBooked: true },
+        });
+        return {
+            appointment,
+            paymentData
         }
     });
 };
@@ -187,6 +252,7 @@ const cancelAppointment = async (id: string) => {
 /**
  * Fetch a single appointment by its unique ID
  */
+
 const getAppointmentById = async (id: string) => {
     const appointment = await prisma.appointment.findUnique({
         where: { id },
@@ -213,10 +279,41 @@ const getAppointmentById = async (id: string) => {
     return appointment;
 };
 
+/**
+ * handle pay later
+ */
+
+const handlePayLater = async (appointmentId:string)=>{
+
+
+   const appointment = await appointmentServices.getAppointmentById(appointmentId);
+
+   if(appointment.status ==="COMPLETED" || appointment.status === "CANCELLED"){
+    throw new AppError(`your appoinement is already ${appointment.status}`,400)
+   }
+
+   if(appointment.paymentStatus === "COMPLETE"){
+       throw new AppError(`your appoinement  payment is already ${appointment.paymentStatus}`,400)
+
+   }
+
+   const sessionPayload:ICreatePaymentSession = {
+     doctorname:appointment.doctor.name,
+     appointmentFee:appointment.doctor.appointmentFee,
+     paymentId:appointment.payment?.id!,
+     quantity:1,
+     appointmentId
+   }
+   const {paymentUrl} = await stripeServices.createPaymentSession(sessionPayload);
+   return paymentUrl
+}
+
 export const appointmentServices = {
     getAllAppointments,
     createAppointment,
     getAllMyAppointments,
     cancelAppointment,
-    getAppointmentById
+    getAppointmentById,
+    createAppointmentWithPaylater,
+    handlePayLater
 };
