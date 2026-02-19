@@ -4,11 +4,7 @@ const stripeRouter = Router();
 
 stripeRouter.post(
   "/webhook",
-  express.raw({ type: "application/json" }),
-  (req, res) => {
-    console.log("🔥 WEBHOOK HIT");
-    res.json({ received: true });
-  }
+  express.raw({ type: "application/json" })
 );
 
 export default stripeRouter 

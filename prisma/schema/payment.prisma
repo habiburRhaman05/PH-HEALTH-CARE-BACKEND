@@ -6,7 +6,7 @@ enum PaymentStatus {
 model Payment {
     id                 String        @id @default(uuid())
     appointmentId      String        @unique
-        stripeEventId       String?         @unique
+    stripeEventId       String?         @unique
     amount             Float
     transactionId      String
     status             PaymentStatus

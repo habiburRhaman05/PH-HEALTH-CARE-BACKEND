@@ -5,7 +5,9 @@ import { ICreateAppointmentPayload } from "./appointment.interface";
 import { QueryBuilder } from "../../utils/queryBuilder";
 import { IQueryParams } from "../../types/queryBuilder.types";
 import { AppointmentStatus } from "../../generated/prisma/enums";
-
+import { v7 as uuidv7 } from "uuid";
+import { stripe } from "../../config/stripe";
+import { envConfig } from "../../config/env";
 /**
  * Get all appointments with filters and pagination (Admin use)
  */
@@ -28,7 +30,6 @@ const getAllAppointments = async (queryParams: IQueryParams) => {
  */
 const createAppointment = async (payload: ICreateAppointmentPayload) => {
     const { doctorId, patientId, scheduleId } = payload;
-
     return await prisma.$transaction(async (tx) => {
         // Validate doctor exists and is active
         const doctor = await tx.doctor.findUnique({
@@ -64,6 +65,42 @@ const createAppointment = async (payload: ICreateAppointmentPayload) => {
                 schedule: true,
             },
         });
+         const transactionId = String(uuidv7());
+
+        const paymentData = await tx.payment.create({
+            data : {
+                appointmentId : appointment.id,
+                amount : doctor.appointmentFee,
+                transactionId,
+                status:"PENDING"
+            }
+        });
+        
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            line_items :[
+                {
+                    price_data:{
+                        currency:"bdt",
+                        product_data:{
+                            name : `Book Appointment with Dr. ${doctor.name}`,
+                        },
+                        unit_amount : doctor.appointmentFee * 100,
+                    },
+                    quantity : 1,
+                }
+            ],
+            metadata:{
+                appointmentId : appointment.id,
+                paymentId : paymentData.id,
+            },
+
+            success_url: `${envConfig.CLIENT_URL}/dashboard/patient/payment/payment-success`,
+
+            // cancel_url: `${envConfig.CLIENT_URL}/dashboard/patient/payment/payment-failed`,
+            cancel_url: `${envConfig.CLIENT_URL}/dashboard/patient/appointments`,
+        })
 
         // Mark doctor schedule as booked
         await tx.doctorSchedules.update({
@@ -73,7 +110,11 @@ const createAppointment = async (payload: ICreateAppointmentPayload) => {
             data: { isBooked: true },
         });
 
-        return appointment;
+        return {
+            appointment,
+            paymentData,
+            paymentUrl:session.url
+        }
     });
 };
 
