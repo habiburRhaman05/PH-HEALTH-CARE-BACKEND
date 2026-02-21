@@ -11,6 +11,7 @@ import patientRouter from "../modules/patient/patient.route"
 import appointmentRouter from "../modules/appointment/appoinment.route"
 import scheduleRouter from "../modules/schedule/schedule.route"
 import doctorScheduleRouter from "../modules/doctor-schedule/doctor-schedule.route"
+import prescriptionRouter from "../modules/prescription/prescription.route";
 
 const indexRouter = Router();
 indexRouter.use("/auth",authRouter)
@@ -25,5 +26,6 @@ indexRouter.use("/patients",patientRouter)
 indexRouter.use("/media",mediaRouter)
 indexRouter.use("/users",usersRouter)
 indexRouter.use("/reviews",reviewsRouter)
+indexRouter.use("/prescriptions",prescriptionRouter)
 
 export default indexRouter

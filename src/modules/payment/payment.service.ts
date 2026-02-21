@@ -54,7 +54,7 @@ const handlePaymentSuccess = async (appointmentId: string) => {
         updatedAt: new Date(),
       },
     });
-
+// send invoice email and congraculation email or payment succcess fully recevied email
     return {
       appointment: updatedAppointment,
       payment: updatedPayment,

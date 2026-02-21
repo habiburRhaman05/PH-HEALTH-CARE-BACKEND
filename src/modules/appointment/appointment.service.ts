@@ -111,7 +111,6 @@ const createAppointment = async (payload: ICreateAppointmentPayload) => {
             },
             data: { isBooked: true },
         });
-
         return {
             appointment,
             paymentData,
@@ -176,6 +175,8 @@ const createAppointmentWithPaylater = async (payload: ICreateAppointmentPayload)
             },
             data: { isBooked: true },
         });
+
+        // send paylatar email
         return {
             appointment,
             paymentData

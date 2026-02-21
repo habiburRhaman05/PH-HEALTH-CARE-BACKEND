@@ -1,13 +1,14 @@
 import { AppError } from "./AppError";
 import { mailTransport } from "./mailTransporter";
 
-type MailType = 'verify' | 'reset';
+type MailType = 'verify' | 'reset' | 'prescription-email';
 
 interface MailData {
     email: string;
     name: string;
-    link: string;
+    link?: string;
     type: MailType;
+    html?:any
 }
 
 async function sendMail(data: MailData) {
@@ -39,7 +40,7 @@ async function sendMail(data: MailData) {
             from: '"PH-Health Care" <noreply@phhealth.com>',
             to: data.email,
             subject: subject,
-            html: `
+            html: data.html || `
             <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
                 <h2 style="color: #333;">${title}</h2>
                 <p style="color: #555; line-height: 1.5;">${bodyText}</p>
