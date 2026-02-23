@@ -4,7 +4,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { dashboardDataServices } from "./dashboard-data.service";
 
 const getAdminDashboardData = asyncHandler(async(req,res)=>{
-    const result = await dashboardDataServices.getDashboardData;
+    const result = await dashboardDataServices.getDashboardData(res.locals.auth)
     sendSuccess(res,{
         statusCode:status.FOUND,
         message:"Fetch Dashboard Data Successfully",
