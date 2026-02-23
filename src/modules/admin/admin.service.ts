@@ -1,9 +1,9 @@
-import { ADMIN_LIST_CACHE, adminCacheById, CACHE_TTL } from "../../config/cacheKeys";
+import { ADMIN_LIST_CACHE, adminCacheById, CACHE_TTL, patientCacheById } from "../../config/cacheKeys";
 import { redis } from "../../config/redis";
 import { UserStatus } from "../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import { IUpdateAdmin } from "./admin.interface";
+import { IChangeUserStatusOrRole, IUpdateAdmin } from "./admin.interface";
 import status from "http-status";
 
 
@@ -132,10 +132,43 @@ const deleteAdminProfile = async (
 
   return result;
 };
+const changeUserStatusOrRole = async (
+
+  payload:IChangeUserStatusOrRole
+) => {
+  const {userId,role,status:userStatus} = payload
+  // check is user exist
+  const existing = await prisma.user.findUnique({
+    where: { id:userId },
+  });
+
+  if (!existing) {
+    throw new AppError(
+      "mr Admin your expected user not found",
+      status.NOT_FOUND
+    );
+  }
+  const updatedQuery = {
+   status:userStatus || existing.status,
+   role:role || existing.role,
+  }
+
+  const updatedUser = await prisma.user.update({
+    where:{id:userId},
+    data:updatedQuery
+  })
+
+
+  await redis.del(patientCacheById(userId));
+  await redis.del(ADMIN_LIST_CACHE);
+
+  return updatedUser
+};
 
 export const adminServices = {
   getAdminById,
   getAllAdminProfile,
   updateAdminProfile,
   deleteAdminProfile,
+  changeUserStatusOrRole
 };
