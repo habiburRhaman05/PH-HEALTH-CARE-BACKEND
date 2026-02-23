@@ -12,6 +12,7 @@ import appointmentRouter from "../modules/appointment/appoinment.route"
 import scheduleRouter from "../modules/schedule/schedule.route"
 import doctorScheduleRouter from "../modules/doctor-schedule/doctor-schedule.route"
 import prescriptionRouter from "../modules/prescription/prescription.route";
+import dashboardRouter from "../modules/dashboard-data/dashboard-data.route";
 
 const indexRouter = Router();
 indexRouter.use("/auth",authRouter)
@@ -27,5 +28,6 @@ indexRouter.use("/media",mediaRouter)
 indexRouter.use("/users",usersRouter)
 indexRouter.use("/reviews",reviewsRouter)
 indexRouter.use("/prescriptions",prescriptionRouter)
+indexRouter.use("/dashboard-data",dashboardRouter)
 
 export default indexRouter
