@@ -5,6 +5,7 @@ import { handlePrismaError } from '../utils/handlePrismaError';
 export const errorHandler = (err: any, _req: Request, res: Response, _next: NextFunction): void => {
   // Default error values
   let statusCode = 500;
+  let stack = "unTracked error";
   let message = "Internal Server Error";
   const errorMessages = err.message;
 
@@ -21,6 +22,7 @@ export const errorHandler = (err: any, _req: Request, res: Response, _next: Next
     const prismaError = handlePrismaError(err);
     statusCode = prismaError.statusCode;
     message = prismaError.message;
+    stack = prismaError.stack
   }
 
   // Send final response

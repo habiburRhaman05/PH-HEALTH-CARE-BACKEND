@@ -2,37 +2,73 @@ import { Prisma } from "../generated/prisma/client";
 
 export const handlePrismaError = (error: any) => {
     let statusCode = 400;
-    let message = "Database Error";
+    let message = "An unexpected database error occurred";
+    let errorDetails = {};
 
-    // most common errors
+    // 1. KNOWN REQUEST ERRORS (The most frequent ones)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         switch (error.code) {
-            case 'P2002':
-                message = `Duplicate field value: ${error.meta?.target}`;
+            case 'P2002': // Unique constraint
+                const target = (error.meta?.target as string[])?.join(", ") || "field";
+                message = `Duplicate entry found: A record with this ${target} already exists.`;
                 break;
-            case 'P2003':
-                message = "Foreign key constraint failed. Check if the related data exists.";
+                
+            case 'P2003': // Foreign key constraint
+                message = "Integrity error: You are trying to reference or delete a record that is linked to other data.";
                 break;
-            case 'P2025':
+
+            case 'P2025': // Record not found
                 statusCode = 404;
-                message = (error.meta?.cause as string) || "Record not found!";
+                message = (error.meta?.cause as string) || "The requested record was not found.";
                 break;
-            case 'P2000':
-                message = "The provided value is too long for this field.";
+
+            case 'P2000': // Value too long
+                message = "Input overflow: One of the values provided is too long for the database column.";
                 break;
+
+            case 'P2014': // Relation violation
+                message = "The change you are trying to make would violate a required relationship.";
+                break;
+
+            case 'P2024': // Connection timeout
+                statusCode = 504; // Gateway Timeout
+                message = "Database connection timed out. Please try again.";
+                break;
+
             default:
-                message = `Prisma Error: ${error.code}`;
+                message = `Database Error (${error.code}): Contact support if this persists.`;
+                break;
         }
     } 
-    // validation error
+    
+    // 2. VALIDATION ERRORS (Schema mismatches)
     else if (error instanceof Prisma.PrismaClientValidationError) {
-        message = "Validation Error: Please check your input fields and data types.";
-    }
-    // network or pull errors
-    else if (error instanceof Prisma.PrismaClientInitializationError) {
-        statusCode = 500;
-        message = "Database connection failed!";
+        // We keep this as 400 because it's usually a developer or bad request body error
+        message = "Invalid data format: Please verify your input matches the required schema.";
     }
 
-    return { statusCode, message };
+    // 3. INITIALIZATION ERRORS (Usually DB is down or credentials are wrong)
+    else if (error instanceof Prisma.PrismaClientInitializationError) {
+        statusCode = 500;
+        message = "Infrastructure Error: Unable to establish a connection to the database.";
+    }
+
+    // 4. RUST ENGINE ERRORS (The rare 'Query Engine' crashes)
+    else if (error instanceof Prisma.PrismaClientRustPanicError) {
+        statusCode = 500;
+        message = "The database engine crashed. Our team has been notified.";
+    }
+
+    // 5. UNKNOWN PRISMA ERRORS
+    else if (error instanceof Prisma.PrismaClientUnknownRequestError) {
+        statusCode = 500;
+        message = "An unidentifiable database request error occurred.";
+    }
+
+    return { 
+        statusCode, 
+        message,
+        // Optional: include original error in development for easier debugging
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+    };
 };

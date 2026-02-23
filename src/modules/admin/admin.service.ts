@@ -132,11 +132,11 @@ const deleteAdminProfile = async (
 
   return result;
 };
-const changeUserStatusOrRole = async (
+const changeUserStatus = async (
 
   payload:IChangeUserStatusOrRole
 ) => {
-  const {userId,role,status:userStatus} = payload
+  const {userId,status:userStatus} = payload
   // check is user exist
   const existing = await prisma.user.findUnique({
     where: { id:userId },
@@ -149,8 +149,7 @@ const changeUserStatusOrRole = async (
     );
   }
   const updatedQuery = {
-   status:userStatus || existing.status,
-   role:role || existing.role,
+   status:userStatus || existing.status
   }
 
   const updatedUser = await prisma.user.update({
@@ -170,5 +169,5 @@ export const adminServices = {
   getAllAdminProfile,
   updateAdminProfile,
   deleteAdminProfile,
-  changeUserStatusOrRole
+  changeUserStatus
 };

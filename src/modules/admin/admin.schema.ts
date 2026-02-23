@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UserStatus } from "../../generated/prisma/enums";
 
  const updateAdminZodSchema = z.object({
     body: z.object({
@@ -13,5 +14,14 @@ import { z } from "zod";
     })
 });
 
+const updateUserStatus = z.object({
+    body:z.object({
+        status:z.enum([UserStatus.ACTIVE,UserStatus.BANNED,UserStatus.DELETED],{
+                required_error: "Status is required in the request body",
+    invalid_type_error: "Status must be a specific string value"
+        })
+    })
+})
 
-export const adminSchemas = {updateAdminZodSchema}
+
+export const adminSchemas = {updateAdminZodSchema,updateUserStatus}

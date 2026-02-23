@@ -48,7 +48,7 @@ const updateAdminController = asyncHandler(async (req: Request, res: Response) =
 
   const updatedAdmin = await adminServices.updateAdminProfile({
     admidId:id as string,
-    data
+    ...data
   })
 
   return sendSuccess(res, {
@@ -57,10 +57,28 @@ const updateAdminController = asyncHandler(async (req: Request, res: Response) =
     data:updatedAdmin
   })
 });
+// -------------------- UPDATE USER STATUS   --------------------
+const updateUserStatus = asyncHandler(async (req: Request, res: Response) => {
+
+    const userId = req.query.id
+    const data = req.body
+
+  const updatedUser = await adminServices.changeUserStatus({
+    userId:userId as string,
+    ...data
+  })
+
+  return sendSuccess(res, {
+    statusCode:201,
+    message: " User Status Updated Successfully",
+    data:updatedUser
+  })
+});
 
 export const adminControllers = {
     getAllAdminController,
     getAdminByIdController,
     updateAdminController,
-    deleteAdminController
+    deleteAdminController,
+    updateUserStatus
 }

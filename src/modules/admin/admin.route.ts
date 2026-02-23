@@ -22,6 +22,13 @@ router.put("/:id",
     validateRequest(adminSchemas.updateAdminZodSchema),
     adminControllers.updateAdminController
 );
+//change user status
+router.put("/:userId",
+    authMiddleware,
+    roleMiddleware([UserRole.SUPER_ADMIN,UserRole.ADMIN]),
+    validateRequest(adminSchemas.updateUserStatus),
+    adminControllers.updateUserStatus
+);
 router.delete("/:id",
     authMiddleware,
     roleMiddleware([UserRole.SUPER_ADMIN]),

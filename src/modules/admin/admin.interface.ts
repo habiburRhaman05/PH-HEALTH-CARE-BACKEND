@@ -13,5 +13,4 @@ export interface IDeleteAdmin{
 export interface IChangeUserStatusOrRole{
     userId:string,
     status:UserStatus | false,
-    role?:UserRole | false,
 }
