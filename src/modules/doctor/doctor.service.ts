@@ -12,9 +12,9 @@ const getDoctorById = async (id: string) => {
   const cacheKey = doctorCacheById(id);
 
   const cachedDoctor = await redis.get(cacheKey);
-  if (cachedDoctor) {
-    return JSON.parse(cachedDoctor);
-  }
+  // if (cachedDoctor) {
+  //   return JSON.parse(cachedDoctor);
+  // }
 
   const doctor = await prisma.doctor.findUnique({
     where: {
@@ -43,6 +43,7 @@ const getDoctorById = async (id: string) => {
                   isBooked:true,
                   schedule:{
                     select:{
+                      id:true,
                       startDate:true,
                       startTime:true,
                       endDate:true,

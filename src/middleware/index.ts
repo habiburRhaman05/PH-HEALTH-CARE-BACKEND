@@ -29,7 +29,7 @@ export const applyMiddleware = (app: Express): void => {
   })
   );
   app.use(hpp());
-  app.use(apiLimiter);
+  // app.use(apiLimiter);
   app.use(cors(corsConfig));
   app.use(compression());
   app.use(cookieParser());
