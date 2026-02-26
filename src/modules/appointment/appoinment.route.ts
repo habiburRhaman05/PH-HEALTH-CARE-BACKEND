@@ -31,10 +31,10 @@ router.post("/pay-later/:appointmentId",
     roleMiddleware(["PATIENT"]),
     // add a schema
     AppointmentController.handleAppointmentPayLater);
-router.get("/:patientId",
+router.get("/patient/my-appointments",
     authMiddleware,
     roleMiddleware(["PATIENT"]),
-    // AppointmentController.getAppointmentPatientId
+    AppointmentController.getPatientAppointments
 );
 router.patch("/:id/cancel",
     authMiddleware,

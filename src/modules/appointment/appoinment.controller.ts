@@ -99,6 +99,21 @@ const cancelAppointment = asyncHandler(
     });
   }
 );
+const getPatientAppointments = asyncHandler(
+  async (req: Request, res: Response) => {
+   const userId = res.locals.auth.userId
+    const result = await appointmentServices.getAllMyAppointments(userId as string,{
+      
+    });
+
+    sendSuccess(res, {
+      statusCode: status.OK,
+      message: "Appointments fetch successfully",
+      data: result.data,
+      meta:result.meta
+    });
+  }
+);
 
 export const AppointmentController = {
   getAllAppointments,
@@ -106,5 +121,6 @@ export const AppointmentController = {
   createAppointment,
   cancelAppointment,
   createAppointmentWithPayLater,
-  handleAppointmentPayLater
+  handleAppointmentPayLater,
+  getPatientAppointments
 };

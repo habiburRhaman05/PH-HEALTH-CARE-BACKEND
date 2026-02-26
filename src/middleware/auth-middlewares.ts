@@ -42,7 +42,7 @@ export async function authMiddleware(
 
     const { user } = sessionData;
 
-    if (user.status === "BANNED" || user.status === "DELETED") {
+    if (user.status === "BANNED" || user.status === "DELETED" || user.isDeleted) {
       return sendError(res, {
         message: `Unauthorized: Account is ${user.status.toLowerCase()}`,
         statusCode: 403

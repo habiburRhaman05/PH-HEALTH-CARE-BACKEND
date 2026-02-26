@@ -10,6 +10,8 @@ import { stripe } from "../../config/stripe";
 import { envConfig } from "../../config/env";
 import { ICreatePaymentSession } from "../stripe/stripe.interface";
 import { stripeServices } from "../stripe/stripe.service";
+import { doctorCacheById } from "../../config/cacheKeys";
+import { redis } from "../../config/redis";
 /**
  * Get all appointments with filters and pagination (Admin use)
  */
@@ -111,6 +113,9 @@ const createAppointment = async (payload: ICreateAppointmentPayload) => {
             },
             data: { isBooked: true },
         });
+
+          // 4️⃣ Invalidate caches
+          await redis.del(doctorCacheById(doctorId));
         return {
             appointment,
             paymentData,
@@ -187,7 +192,24 @@ const createAppointmentWithPaylater = async (payload: ICreateAppointmentPayload)
 /**
  * Get appointments specific to a patient
  */
-const getAllMyAppointments = async (patientId: string, queryParams: IQueryParams) => {
+const getAllMyAppointments = async (userId: string, queryParams: IQueryParams) => {
+
+    const user = await prisma.user.findUnique({
+        where:{
+            id:userId
+        },include:{
+            patient:{
+                select:{
+                    id:true
+                }
+            }
+        }
+    })
+
+    if(!user){
+        throw new AppError("User not found",status.NOT_FOUND)
+    }
+
     const appointmentQuery = new QueryBuilder(prisma.appointment, queryParams)
         .include({
             patient: true,
@@ -200,9 +222,9 @@ const getAllMyAppointments = async (patientId: string, queryParams: IQueryParams
         .paginate()
         .sort();
 
-    // Force filter by patientId
+    // Force filter by userId
     appointmentQuery.query.where = {
-        patientId: patientId
+        patientId: user.patient?.id
     };
 
     const result = await appointmentQuery.execute();

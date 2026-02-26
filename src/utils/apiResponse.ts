@@ -4,6 +4,7 @@ type SuccessOptions = {
   statusCode?: number;
   message?: string;
   data?: any;
+  meta?: any;
 };
 
 type ErrorOptions = {
@@ -14,14 +15,15 @@ type ErrorOptions = {
 
 export const sendSuccess = (
   res: Response,
-  { statusCode = 200, message = "Success", data }: SuccessOptions
+  { statusCode = 200, message = "Success", data,meta }: SuccessOptions
 ) => {
   res.status(statusCode).json({
     success: true,
     message,
     data,
-    meta: {
+    meta:  {
       timestamp: new Date().toISOString(),
+      ...meta
     },
   });
 };
