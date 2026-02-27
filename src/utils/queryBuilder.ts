@@ -35,18 +35,24 @@ export class QueryBuilder<T> {
    */
   filter(filterableFields: string[]) {
     const filters = { ...this.queryParams };
-    const excludedFields = ['searchTerm', 'page', 'limit', 'sortBy', 'sortOrder', 'fields'];
+    const excludedFields = ['searchQuery', 'page', 'limit', 'sortBy', 'sortOrder', 'fields'];
 
     excludedFields.forEach((f) => delete filters[f]);
+
+  
+    
 
     Object.keys(filters).forEach((key) => {
       if (filterableFields.includes(key)) {
         const value = filters[key];
         // ডাটাবেস কোয়েরি বিল্ড করা (সাপোর্টস নেস্টেড ফিল্ড)
         const condition = this.buildNestedConditions(key, value);
+    
         this.query.where = { ...this.query.where, ...condition };
       }
     });
+    console.log(this.query);
+    
     return this;
   }
 

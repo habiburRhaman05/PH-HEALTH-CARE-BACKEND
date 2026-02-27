@@ -219,19 +219,28 @@ const getAllMyAppointments = async (userId: string, queryParams: IQueryParams) =
             review: true,
             payment: true,
         })
+        .filter(["status"])
+      
         .paginate()
         .sort();
 
     // Force filter by userId
-    appointmentQuery.query.where = {
-        patientId: user.patient?.id
-    };
+    appointmentQuery.query.where = {...appointmentQuery.query.where,
+        patientId: user.patient?.id,
+        patient:{
+            name:{
+                contains: queryParams.searchQuery,
+                   mode: "insensitive"
+            }
+        }
+};
+
 
     const result = await appointmentQuery.execute();
 
-    if (!result.data || result.data.length === 0) {
-        throw new AppError("No appointments found for this patient", status.NOT_FOUND);
-    }
+    // if (!result.data || result.data.length === 0) {
+    //     throw new AppError("No appointments found for this patient", status.NOT_FOUND);
+    // }
 
     return result;
 };
@@ -328,7 +337,7 @@ const handlePayLater = async (appointmentId:string)=>{
      appointmentId
    }
    const {paymentUrl} = await stripeServices.createPaymentSession(sessionPayload);
-   return paymentUrl
+   return {paymentUrl}
 }
 
 export const appointmentServices = {

@@ -6,6 +6,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { appointmentServices } from "./appointment.service";
 import { sendSuccess } from "../../utils/apiResponse";
 import { v7 as uuidv7 } from "uuid";
+import { AppointmentStatus } from "../../generated/prisma/enums";
 
 
 const getAllAppointments = asyncHandler(
@@ -70,12 +71,14 @@ const createAppointmentWithPayLater = asyncHandler(
 );
 const handleAppointmentPayLater = asyncHandler(
   async (req: Request, res: Response) => {
-    const {appointmentId} = req.body;
-    const result = await appointmentServices.handlePayLater(appointmentId);
+    const appointmentId = req.params.appointmentId;
+    console.log(appointmentId);
+    
+    const result = await appointmentServices.handlePayLater(appointmentId as string);
 
     sendSuccess(res, {
       statusCode: status.CREATED,
-      message: "Appointment  paid successfully",
+      message: "Payment  Session Created successfully",
       data: result,
     });
   }
@@ -101,9 +104,18 @@ const cancelAppointment = asyncHandler(
 );
 const getPatientAppointments = asyncHandler(
   async (req: Request, res: Response) => {
-   const userId = res.locals.auth.userId
+   const userId = res.locals.auth.userId;
+
+   const page =req.query.page || "1";
+   const appointmentStatus =req.query.status || AppointmentStatus.SCHEDULED
+   const q =req.query.q! || "";
+ 
+
+
     const result = await appointmentServices.getAllMyAppointments(userId as string,{
-      
+      searchQuery:q as string,
+      page:page as string,
+       status:(appointmentStatus as string).toUpperCase()
     });
 
     sendSuccess(res, {

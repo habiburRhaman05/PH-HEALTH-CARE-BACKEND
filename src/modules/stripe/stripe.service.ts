@@ -22,9 +22,9 @@ const createPaymentSession = async (sessionData:ICreatePaymentSession)=>{
                 appointmentId : sessionData.appointmentId,
                 paymentId : sessionData.paymentId,
             },
-            success_url: `${envConfig.CLIENT_URL}/dashboard/patient/payment-success/${sessionData.appointmentId}`,
+            success_url: `${envConfig.CLIENT_URL}/dashboard/payment-success/${sessionData.appointmentId}`,
             // cancel_url: `${envConfig.CLIENT_URL}/dashboard/patient/payment/payment-failed`,
-            cancel_url: `${envConfig.CLIENT_URL}/dashboard/patient/payment-error/${sessionData.appointmentId}`,
+            cancel_url: `${envConfig.CLIENT_URL}/dashboard/payment-error/${sessionData.appointmentId}`,
         });
 
         return {
