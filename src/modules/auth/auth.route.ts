@@ -29,9 +29,9 @@ router.get(
 authMiddleware,
   authControllers.logoutUserController
 );
-router.get(
+router.post(
   "/refresh-token",
-authMiddleware,
+// authMiddleware,
   authControllers.getRefreshTokenController
 );
 router.post(

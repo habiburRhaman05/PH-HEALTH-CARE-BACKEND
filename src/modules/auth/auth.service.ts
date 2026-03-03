@@ -93,46 +93,66 @@ const getAllNewTokens = async (
   refreshToken: string,
   sessionToken: string
 ) => {
-  const storedSession = await redis.get(`refresh:${refreshToken}`);
+ 
+    const isSessionTokenExists = await prisma.session.findUnique({
+        where : {
+            token : sessionToken,
+        },
+        include : {
+            user : true,
+        }
+    })
 
-  if (!storedSession || storedSession !== sessionToken)
-    throw new AppError("Invalid refresh token", status.UNAUTHORIZED);
+    if(!isSessionTokenExists){
+        throw new AppError( "Invalid session token",status.UNAUTHORIZED);
+    }
 
-  const verified = jwtUtils.verifyToken(
-    refreshToken,
-    envConfig.REFRESH_TOKEN_SECRET
-  );
+    const verifiedRefreshToken = jwtUtils.verifyToken(refreshToken, envConfig.REFRESH_TOKEN_SECRET)
 
-  if (!verified.success || !verified.data)
-    throw new AppError("Invalid refresh token", status.UNAUTHORIZED);
 
-  const payload = verified.data as JwtPayload;
+    if(!verifiedRefreshToken.success && verifiedRefreshToken.error){
+        throw new AppError( "Invalid refresh token",status.UNAUTHORIZED);
+    }
 
-  const tokenPayload = {
-    userId: payload.userId,
-    role: payload.role,
-    name: payload.name,
-    email: payload.email,
-    status: payload.status,
-  };
+    const data = verifiedRefreshToken.data as JwtPayload;
 
-  const newAccessToken = tokenUtils.getAccessToken(tokenPayload);
-  const newRefreshToken = tokenUtils.getRefreshToken(tokenPayload);
+    const newAccessToken = tokenUtils.getAccessToken({
+        userId: data.userId,
+        role: data.role,
+        name: data.name,
+        email: data.email,
+        status: data.status,
+        isDeleted: data.isDeleted,
+        emailVerified: data.emailVerified,
+    });
 
-  await redis.del(`refresh:${refreshToken}`);
+    const newRefreshToken = tokenUtils.getRefreshToken({
+        userId: data.userId,
+        role: data.role,
+        name: data.name,
+        email: data.email,
+        status: data.status,
+        isDeleted: data.isDeleted,
+        emailVerified: data.emailVerified,
+    });
 
-  await redis.set(
-    `refresh:${newRefreshToken}`,
-    sessionToken,
-    "EX",
-    REFRESH_EXPIRE
-  );
+    const {token} = await prisma.session.update({
+        where : {
+            token : sessionToken
+        },
+        data : {
+            token : sessionToken,
+            expiresAt: new Date(Date.now() + 60 * 60 * 60 * 24 * 1000),
+            updatedAt: new Date(),
+        }
+    })
 
-  return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-    sessionToken,
-  };
+    return {
+        accessToken : newAccessToken,
+        refreshToken : newRefreshToken,
+        sessionToken : token,
+    }
+
 };
 
 const getUserProfile = async (user: IRequestUser) => {

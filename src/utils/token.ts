@@ -5,7 +5,7 @@ import { envConfig } from "../config/env";
 import { CookieUtils } from "./cookie";
 
 const isProduction = envConfig.NODE_ENV === "production";
-console.log("isprod",isProduction);
+console.log("isprod", isProduction);
 
 const getAccessToken = (payload: JwtPayload) => {
     return jwtUtils.createToken(
@@ -29,7 +29,7 @@ const setAccessTokenCookie = (res: Response, token: string) => {
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
         path: '/',
-        maxAge: 15 * 60 * 1000, // 15 minutes in milliseconds
+        maxAge: 5 * 60 * 1000, // 15 minutes in milliseconds
     });
 }
 
@@ -39,7 +39,7 @@ const setRefreshTokenCookie = (res: Response, token: string) => {
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+        maxAge: 30 * 60 * 1000, // 7 days in milliseconds
     });
 }
 
@@ -49,7 +49,7 @@ const setBetterAuthSessionCookie = (res: Response, token: string) => {
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
         path: '/',
-        maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+        maxAge: 5 * 60 * 1000, // 1 day in milliseconds
     });
 }
 

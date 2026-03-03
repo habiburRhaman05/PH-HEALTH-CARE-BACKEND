@@ -27,6 +27,7 @@ export async function authMiddleware(
         token: token,
         expiresAt: { gt: new Date() }
       },
+      
       include: { user: true }
     });
     console.log("session data",sessionData);

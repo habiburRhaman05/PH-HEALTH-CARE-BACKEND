@@ -122,14 +122,15 @@ const changePasswordController = asyncHandler(async (req: Request, res: Response
 const getRefreshTokenController = asyncHandler(async (req: Request, res: Response) => {
 
 
-  const refreshToken = req.cookies.refreshToken;
-  const sessionToken = req.cookies["better-auth.session_token"];
-  if (!refreshToken) {
-    throw new AppError("Refresh token is missing", status.UNAUTHORIZED);
-  }
+  // const refreshToken = req.cookies.refreshToken;
+  // const sessionToken = req.cookies["better-auth.session_token"];
+  // if (!refreshToken) {
+  //   throw new AppError("Refresh token is missing", status.UNAUTHORIZED);
+  // }
 
-  const result = await authServices.getAllNewTokens(refreshToken, sessionToken)
-  console.log(sessionToken);
+  const  {cookie,token} = req.body;
+  const result = await authServices.getAllNewTokens(cookie, token)
+  // console.log(sessionToken);
 
   tokenUtils.setAccessTokenCookie(res, result.accessToken)
   tokenUtils.setRefreshTokenCookie(res, result.refreshToken)
